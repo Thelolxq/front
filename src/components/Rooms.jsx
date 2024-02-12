@@ -3,6 +3,7 @@ import entrar from '../assets/vinculado.png'
 import {io} from 'socket.io-client'
 import Chat from './Chat'
 import axios from 'axios'
+import eliminar from '../assets/boton-eliminar.png'
 const Rooms = () => {
 
     
@@ -10,27 +11,64 @@ const Rooms = () => {
     const [socket, SetSocket] = useState(null)
     const [room, SetRoom] = useState('')
     const [joinedRoom, SetJoinedRoom] = useState(false)
-    const [roomList, SetRoomList] = useState([])
-    const [selectedRoom, setSelectedRoom] = useState(null);
+    const [usuarios, SetUsuarios] = useState([])
+    const [selectedUser, SetSelectedUser] = useState(null);
+    const [notification, SetNotification] = useState(false)
+    const [conectados, SetConectados] = useState()
 
 useEffect(()=>{
-    const newSocket = io('http://localhost:3000')
-    SetSocket(newSocket)
     FechData()
-    return ()=>{
-        newSocket.close()
-    }
-},[])
-
-const FechData = async ()=>{
+    GetData()
+    
+},[notification])
+useEffect(() => {
+    const newSocket = io('http://localhost:3000');
+    SetSocket(newSocket);
+    GetConect()
+    return () => {
+       
+        newSocket.close();
+    };
+}, []);
+const FechData = async () => {
     try{
-        const response = await axios.get('http://localhost:3000/rooms')
-        
-        SetRoomList(response.data)
+            const response = await axios.get('http://localhost:3000/alumnos')
+            SetNotification(true)
+            SetUsuarios(response.data)
     }catch(err){
-            console.error('error obteniendo las salas',  err)
+            console.error('error en la peticion', err)
     }
 }
+const GetData = async ()=>{
+    try{
+        const response = await axios.get('http://localhost:3000/maestros/notificacion')
+        SetNotification(response)
+        GetData()
+    }catch(err){
+        console.error('error en la peticion', err)
+    }
+}
+
+const EliminarData = async (id_alumno)=>{
+    try{
+        const response = await axios.delete(`http://localhost:3000/maestros/${id_alumno}`)
+         console.log('Usuario eliminado:', response);
+         FechData()
+    }catch(err){
+            console.error('error en la peticion', err)
+    }
+}
+const GetConect = async ()=>{
+    try{
+        const response = await axios.get('http://localhost:3000/shortPolling')
+        SetConectados(response.data.clientes)
+       setTimeout(GetConect, 5000)
+    }catch(err){
+        console.error('error en la peticion', err)
+    }
+}
+
+
     const handleNameRoomChange = (e) => {
         SetRoom(e.target.value)
         
@@ -43,11 +81,11 @@ const FechData = async ()=>{
         }
         
     }
-    const handleRoomButtonClick = (roomName) => {
-        setSelectedRoom(roomName); 
-        SetRoom(roomName); 
-    };
 
+    const handleUserSelect = (user)=>{
+            SetSelectedUser(user)
+    }
+   
   
   return (
     <>
@@ -76,13 +114,20 @@ const FechData = async ()=>{
             
                     )}
                 </div>
-                    <h2 className='text-gray-500 pl-2 text-lg'>Salas creadas</h2>
+                    <h2 className='text-gray-500 pl-2 mb-4 text-lg'>Usuarios conectados {conectados}</h2>
                 <ul className='pl-5 pr-5'>
-                {!joinedRoom && roomList.map((roomName, index) => (
-                                <button key={index} onClick={() => handleRoomButtonClick(roomName)} className={`flex flex-col  mb-2 bg-opacity-65 w-full h-10 justify-center pl-5 rounded-xl ${selectedRoom === roomName ? 'bg-neutral-700' : ''}`}>
-                                    <li className="text-white">{roomName}</li>
-                                </button>
-                            ))}
+                    <h2 className='text-gray-500 pl-2 mb-4 text-lg'>Usuarios registrados</h2>
+              {!joinedRoom && usuarios.map((user)=>(
+                
+                    <li className='relative' key={user.id_alumno}>
+                <button onClick={()=> handleUserSelect(user)}  className={`text-white h-10 items-center font-medium text-lg w-full  flex  pl-2 rounded-md ${selectedUser === user ? 'bg-neutral-700' : ''}`}>
+                        {user.nombre}
+                </button>
+                <button onClick={()=> EliminarData(user.id_alumno)} className='w-8 h-full absolute right-0 top-0'><img src={eliminar} alt="" /></button>
+                    </li>
+                
+                
+              ))}
                 </ul>
                
             </aside>

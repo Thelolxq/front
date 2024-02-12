@@ -21,7 +21,7 @@ const handleInciar = async()=>{
                 const data = response.data
                 localStorage.setItem('token', data.token)
             }else{
-                SetError("Error al crear usuario");
+                SetError("Error iniciar");
             }
     }catch(err){
         SetError("error al iniciar sesion");
